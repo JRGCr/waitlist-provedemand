@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Join the Waitlist</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="config.js"></script>
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+</head>
+<body>
+  <div id="app">
+    <div class="container">
+      <img id="logo" src="" alt="" style="display: none;">
+      <h1 id="headline"></h1>
+      <p id="description"></p>
+      
+      <form id="signup-form">
+        <div id="name-field" style="display: none;">
+          <input type="text" name="name" placeholder="Your name">
+        </div>
+        
+        <div id="company-field" style="display: none;">
+          <input type="text" name="company" placeholder="Company">
+        </div>
+        
+        <input type="email" name="email" placeholder="your@email.com" required>
+        
+        <input type="text" name="website" style="display: none;" tabindex="-1" autocomplete="off">
+        
+        <div id="turnstile-widget"></div>
+        
+        <button type="submit">Join Waitlist</button>
+      </form>
+      
+      <div id="success-message" style="display: none;">
+        <h2>You're on the list!</h2>
+        <p>We'll be in touch soon.</p>
+      </div>
+      
+      <div id="error-message" style="display: none;">
+        <p>Something went wrong. Please try again.</p>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const config = window.WAITLIST_CONFIG;
+      
+      document.getElementById('headline').textContent = config.headline;
+      document.getElementById('description').textContent = config.description || '';
+      document.documentElement.style.setProperty('--primary-color', config.primary_color);
+      
+      if (config.logo_url) {
+        const logo = document.getElementById('logo');
+        logo.src = config.logo_url;
+        logo.style.display = 'block';
+      }
+      
+      if (config.collect_name) {
+        document.getElementById('name-field').style.display = 'block';
+      }
+      
+      if (config.collect_company) {
+        document.getElementById('company-field').style.display = 'block';
+      }
+      
+      if (config.turnstile_enabled && config.turnstile_site_key) {
+        turnstile.render('#turnstile-widget', {
+          sitekey: config.turnstile_site_key,
+        });
+      }
+      
+      document.getElementById('signup-form').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const form = e.target;
+        const formData = new FormData(form);
+        const data = Object.fromEntries(formData.entries());
+        
+        if (config.turnstile_enabled) {
+          data.turnstile_token = turnstile.getResponse();
+        }
+        
+        try {
+          const response = await fetch(config.api_url + '/signup', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+          });
+          
+          if (response.ok) {
+            form.style.display = 'none';
+            document.getElementById('success-message').style.display = 'block';
+          } else {
+            document.getElementById('error-message').style.display = 'block';
+          }
+        } catch (error) {
+          document.getElementById('error-message').style.display = 'block';
+        }
+      });
+    });
+  </script>
+</body>
+</html>
